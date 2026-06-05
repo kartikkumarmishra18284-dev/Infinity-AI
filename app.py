@@ -1,20 +1,17 @@
 import os
-from flask import Flask, render_template, request, session
+from flask import Flask, render_template, request
 import requests
 
 app = Flask(__name__)
 
-# 🔑 Required for chat history (sessions)
-app.secret_key = "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"
-
-# 🔑 API key from Render Environment Variables
-API_KEY = os.getenv("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")
+# 🔑 API key comes from Render Environment Variables
+API_KEY = os.getenv("GROQ_API_KEY")
 
 @app.route("/", methods=["GET", "POST"])
 def home():
 
-    if "chat" not in session:
-        session["chat"] = []
+    reply = ""
+    user_msg = ""
 
     if request.method == "POST":
         user_msg = request.form.get("message")
@@ -37,7 +34,7 @@ def home():
             res = requests.post(url, headers=headers, json=data)
             result = res.json()
 
-            print(result)  # debug on Render logs
+            print("DEBUG:", result)  # shows errors in Render logs
 
             if "choices" in result:
                 reply = result["choices"][0]["message"]["content"]
@@ -47,13 +44,9 @@ def home():
         except Exception as e:
             reply = f"Error: {str(e)}"
 
-        # 💾 Save chat history
-        chat = session["chat"]
-        chat.append({"user": user_msg, "ai": reply})
-        session["chat"] = chat
+    return render_template("index.html", user_msg=user_msg, reply=reply)
 
-    return render_template("index.html", chat=session["chat"])
 
-# 🌍 Render production run
+# 🌍 Render deployment setting
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
